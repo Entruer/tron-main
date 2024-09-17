@@ -45,6 +45,7 @@
 *******************************************************************************/
 #include "cyhal.h"
 #include "cybsp.h"
+//#include "cy_retarget_io.h"
 
 /******************************************************************************
 * Macros
@@ -54,7 +55,8 @@
 /*******************************************************************************
 * Global Variables
 *******************************************************************************/
-
+cyhal_uart_t uart_receiver;
+uint8_t read_data;
 
 /*******************************************************************************
 * Function Prototypes
@@ -96,6 +98,10 @@ int main(void)
     /* Initialize the device and board peripherals */
     result = cybsp_init();
 
+    cyhal_gpio_configure(LED1, CYHAL_GPIO_DIR_OUTPUT, CYHAL_GPIO_DRIVE_STRONG);
+    cyhal_gpio_configure(LED2, CYHAL_GPIO_DIR_OUTPUT, CYHAL_GPIO_DRIVE_STRONG);
+    cyhal_uart_init_cfg(&uart_receiver, &scb_8_hal_config);
+
     /* Board init failed. Stop program execution */
     if (result != CY_RSLT_SUCCESS)
     {
@@ -110,6 +116,7 @@ int main(void)
 
     for (;;)
     {
+
     }
 }
 
