@@ -132,6 +132,9 @@ int main(void)
     cyhal_gpio_configure(LED1, CYHAL_GPIO_DIR_OUTPUT, CYHAL_GPIO_DRIVE_STRONG);
     cyhal_gpio_configure(LED2, CYHAL_GPIO_DIR_OUTPUT, CYHAL_GPIO_DRIVE_STRONG);
     cyhal_gpio_configure(LED3, CYHAL_GPIO_DIR_OUTPUT, CYHAL_GPIO_DRIVE_STRONG);
+    cyhal_gpio_write(LED1, 0);
+    cyhal_gpio_write(LED2, 0);
+    cyhal_gpio_write(LED3, 0);
     configure_rx_dma(rx_dma_uart_buffer, &RX_DMA_INT_cfg);
 	configure_tx_dma(rx_dma_uart_buffer, &TX_DMA_INT_cfg);
 	Cy_SysInt_Init(&UART_RECEIVER_INT_cfg, &Isr_UART);

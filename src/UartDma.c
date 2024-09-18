@@ -173,7 +173,6 @@ void configure_tx_dma(uint8_t* buffer_a, cy_stc_sysint_t* int_config)
 *******************************************************************************/
 void rx_dma_complete(void)
 {
-	cyhal_gpio_toggle(LED3);
     Cy_DMA_Channel_ClearInterrupt(RxDma_HW, RxDma_CHANNEL);
 
     /* Check interrupt cause to capture errors. */

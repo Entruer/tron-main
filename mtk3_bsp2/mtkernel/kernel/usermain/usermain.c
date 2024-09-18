@@ -43,7 +43,7 @@ LOCAL T_CTSK ctsk_uart = {
 	.itskpri	= 10,
 	.stksz		= 8192,
 	.task		= task_uart,
-	.tskatr		= TA_HLNG,
+	.tskatr		= TA_HLNG | TA_RNG3,
 };
 
 void uart_callback(void *callback_arg, cyhal_uart_event_t event){
