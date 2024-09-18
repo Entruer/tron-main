@@ -7,8 +7,7 @@ extern unsigned char Epaper_border;
 extern cyhal_spi_t mSPI;
 
 void driver_delay_xms(unsigned long xms) {
-//	tk_dly_tsk(xms);
-	cyhal_system_delay_ms(xms);
+	tk_dly_tsk(xms);
 }
 
 void Epaper_Spi_WriteByte(unsigned char TxData) {

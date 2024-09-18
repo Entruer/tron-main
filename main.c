@@ -46,8 +46,6 @@
 #include "cyhal.h"
 #include "cybsp.h"
 #include "UartDma.h"
-#include "Epaper.h"
-#include "Matrix.h"
 
 /******************************************************************************
 * Macros
@@ -133,9 +131,11 @@ int main(void)
 		.intrPriority = 6u,
 	};
 
-    cyhal_gpio_configure(LED1, CYHAL_GPIO_DIR_OUTPUT, CYHAL_GPIO_DRIVE_STRONG);
-    cyhal_gpio_configure(LED2, CYHAL_GPIO_DIR_OUTPUT, CYHAL_GPIO_DRIVE_STRONG);
-    cyhal_gpio_configure(LED3, CYHAL_GPIO_DIR_OUTPUT, CYHAL_GPIO_DRIVE_STRONG);
+    cyhal_gpio_init(LED1, CYHAL_GPIO_DIR_OUTPUT, CYHAL_GPIO_DRIVE_STRONG, CYBSP_LED_STATE_OFF);
+    cyhal_gpio_init(LED2, CYHAL_GPIO_DIR_OUTPUT, CYHAL_GPIO_DRIVE_STRONG, CYBSP_LED_STATE_OFF);
+    cyhal_gpio_init(LED3, CYHAL_GPIO_DIR_OUTPUT, CYHAL_GPIO_DRIVE_STRONG, CYBSP_LED_STATE_OFF);
+    cyhal_gpio_init(CYBSP_USER_BTN1, CYHAL_GPIO_DIR_INPUT, CYBSP_USER_BTN_DRIVE, CYBSP_BTN_OFF);
+    cyhal_gpio_init(CYBSP_USER_BTN2, CYHAL_GPIO_DIR_INPUT, CYBSP_USER_BTN_DRIVE, CYBSP_BTN_OFF);
     init_cycfg_pins();
     cyhal_gpio_configure(DC, CYHAL_GPIO_DIR_OUTPUT, CYHAL_GPIO_DRIVE_STRONG);
     cyhal_gpio_configure(RST, CYHAL_GPIO_DIR_OUTPUT, CYHAL_GPIO_DRIVE_STRONG);
@@ -164,17 +164,13 @@ int main(void)
     /* Enable global interrupts */
     __enable_irq();
 
-//    void knl_start_mtkernel(void);
-//	knl_start_mtkernel();
-
-    EPD_HW_Init();
-    EPD_ALL_image(&cat_happy_stage2_layer1[0][0], &cat_happy_stage2_layer0[0][0]);
-//    EPD_WhiteScreen_Black();
+    void knl_start_mtkernel(void);
+	knl_start_mtkernel();
 
     for (;;)
     {
-    	cyhal_gpio_toggle(LED1);
-    	cyhal_system_delay_ms(500);
+//    	cyhal_gpio_toggle(LED1);
+//    	cyhal_system_delay_ms(500);
     }
 }
 

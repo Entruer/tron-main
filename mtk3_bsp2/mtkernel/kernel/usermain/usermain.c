@@ -10,6 +10,7 @@
  *
  *----------------------------------------------------------------------
  */
+ 
 
 #include <tk/tkernel.h>
 #include <tm/tmonitor.h>
@@ -20,41 +21,229 @@
 #include "cyhal.h"
 #include "cybsp.h"
 #include "UartDma.h"
-//#include "Epaper.h"
-//#include "Matrix.h"
+#include "Epaper.h"
+#include "Matrix.h"
+
+/****************************************************
+ * External variables
+ ****************************************************/
 
 extern uint8_t rx_dma_uart_buffer[BUFFER_SIZE];
 extern uint8_t rx_dma_done;
 
-/*
- * Entry routine for the user application.
- * At this point, Initialize and start the user application.
- *
- * Entry routine is called from the initial task for Kernel,
- * so system call for stopping the task should not be issued 
- * from the contexts of entry routine.
- * We recommend that:
- * (1)'usermain()' only generates the user initial task.
- * (2)initialize and start the user application by the user
- * initial task.
- */
+/****************************************************
+ * Variables
+ ****************************************************/
 
-//LOCAL void task_epaper(INT stacd, void *exinf);
-//LOCAL ID tskid_epaper;
-//LOCAL T_CTSK ctsk_epaper = {
-//		.itskpri = 10,
-//		.stksz = 8192,
-//		.task = task_epaper,
-//		.tskatr = TA_HLNG | TA_RNG3,
-//};
-//
-//LOCAL void task_epaper(INT stacd, void *exinf) {
-//	while (1) {
-//		EPD_ALL_image(cat_happy_stage1_layer0, cat_happy_stage1_layer1);
-//		cyhal_gpio_toggle(LED1);
-//		tk_dly_tsk(1000);
-//	}
-//}
+uint32_t water_total_drink;
+uint8_t water_now, water_last;
+uint8_t water_total_drink_level;
+uint8_t animal_sel;
+bool epaper_need_update;
+bool cup_connected;
+uint8_t *datas1, *datas2;
+
+/****************************************************
+ * Mapping
+ ****************************************************/
+
+typedef struct {
+	void *left;
+	void *right;
+} Mapping;
+
+
+void right_shift_datas(unsigned char **datas, const Mapping *mappings);
+void left_shift_datas(unsigned char **datas, const Mapping *mappings);
+void increase_stage(unsigned char **datas, const Mapping *mappings);
+
+const Mapping animal_switch_l0[] = {
+	{(uint8_t *)cat_happy_stage1_layer0, (uint8_t *)elephant_happy_stage1_layer0},
+	{(uint8_t *)cat_happy_stage2_layer0, (uint8_t *)elephant_happy_stage2_layer0},
+	{(uint8_t *)cat_happy_stage3_layer0, (uint8_t *)elephant_happy_stage3_layer0},
+	{(uint8_t *)cat_happy_stage4_layer0, (uint8_t *)elephant_happy_stage4_layer0},
+	{(uint8_t *)cat_happy_stage5_layer0, (uint8_t *)elephant_happy_stage5_layer0},
+	{(uint8_t *)cat_sad_stage1_layer0, (uint8_t *)elephant_sad_stage1_layer0},
+	{(uint8_t *)cat_sad_stage2_layer0, (uint8_t *)elephant_sad_stage2_layer0},
+	{(uint8_t *)cat_sad_stage3_layer0, (uint8_t *)elephant_sad_stage3_layer0},
+	{(uint8_t *)cat_sad_stage4_layer0, (uint8_t *)elephant_sad_stage4_layer0},
+	{(uint8_t *)cat_sad_stage5_layer0, (uint8_t *)elephant_sad_stage5_layer0},
+	{(uint8_t *)elephant_happy_stage1_layer0, (uint8_t *)seal_happy_stage1_layer0},
+	{(uint8_t *)elephant_happy_stage2_layer0, (uint8_t *)seal_happy_stage2_layer0},
+	{(uint8_t *)elephant_happy_stage3_layer0, (uint8_t *)seal_happy_stage3_layer0},
+	{(uint8_t *)elephant_happy_stage4_layer0, (uint8_t *)seal_happy_stage4_layer0},
+	{(uint8_t *)elephant_happy_stage5_layer0, (uint8_t *)seal_happy_stage5_layer0},
+	{(uint8_t *)elephant_sad_stage1_layer0, (uint8_t *)seal_sad_stage1_layer0},
+	{(uint8_t *)elephant_sad_stage2_layer0, (uint8_t *)seal_sad_stage2_layer0},
+	{(uint8_t *)elephant_sad_stage3_layer0, (uint8_t *)seal_sad_stage3_layer0},
+	{(uint8_t *)elephant_sad_stage4_layer0, (uint8_t *)seal_sad_stage4_layer0},
+	{(uint8_t *)elephant_sad_stage5_layer0, (uint8_t *)seal_sad_stage5_layer0},
+	{(uint8_t *)seal_happy_stage1_layer0, (uint8_t *)tree_happy_stage1_layer0},
+	{(uint8_t *)seal_happy_stage2_layer0, (uint8_t *)tree_happy_stage2_layer0},
+	{(uint8_t *)seal_happy_stage3_layer0, (uint8_t *)tree_happy_stage3_layer0},
+	{(uint8_t *)seal_happy_stage4_layer0, (uint8_t *)tree_happy_stage4_layer0},
+	{(uint8_t *)seal_happy_stage5_layer0, (uint8_t *)tree_happy_stage5_layer0},
+	{(uint8_t *)seal_sad_stage1_layer0, (uint8_t *)tree_sad_stage1_layer0},
+	{(uint8_t *)seal_sad_stage2_layer0, (uint8_t *)tree_sad_stage2_layer0},
+	{(uint8_t *)seal_sad_stage3_layer0, (uint8_t *)tree_sad_stage3_layer0},
+	{(uint8_t *)seal_sad_stage4_layer0, (uint8_t *)tree_sad_stage4_layer0},
+	{(uint8_t *)seal_sad_stage5_layer0, (uint8_t *)tree_sad_stage5_layer0},
+	{(uint8_t *)tree_happy_stage1_layer0, (uint8_t *)cat_happy_stage1_layer0},
+	{(uint8_t *)tree_happy_stage2_layer0, (uint8_t *)cat_happy_stage2_layer0},
+	{(uint8_t *)tree_happy_stage3_layer0, (uint8_t *)cat_happy_stage3_layer0},
+	{(uint8_t *)tree_happy_stage4_layer0, (uint8_t *)cat_happy_stage4_layer0},
+	{(uint8_t *)tree_happy_stage5_layer0, (uint8_t *)cat_happy_stage5_layer0},
+	{(uint8_t *)tree_sad_stage1_layer0, (uint8_t *)cat_sad_stage1_layer0},
+	{(uint8_t *)tree_sad_stage2_layer0, (uint8_t *)cat_sad_stage2_layer0},
+	{(uint8_t *)tree_sad_stage3_layer0, (uint8_t *)cat_sad_stage3_layer0},
+	{(uint8_t *)tree_sad_stage4_layer0, (uint8_t *)cat_sad_stage4_layer0},
+	{(uint8_t *)tree_sad_stage5_layer0, (uint8_t *)cat_sad_stage5_layer0},
+};
+
+const Mapping animal_switch_l1[] = {
+	{(uint8_t *)cat_happy_stage1_layer1, (uint8_t *)elephant_happy_stage1_layer1},
+	{(uint8_t *)cat_happy_stage2_layer1, (uint8_t *)elephant_happy_stage2_layer1},
+	{(uint8_t *)cat_happy_stage3_layer1, (uint8_t *)elephant_happy_stage3_layer1},
+	{(uint8_t *)cat_happy_stage4_layer1, (uint8_t *)elephant_happy_stage4_layer1},
+	{(uint8_t *)cat_happy_stage5_layer1, (uint8_t *)elephant_happy_stage5_layer1},
+	{(uint8_t *)cat_sad_stage1_layer1, (uint8_t *)elephant_sad_stage1_layer1},
+	{(uint8_t *)cat_sad_stage2_layer1, (uint8_t *)elephant_sad_stage2_layer1},
+	{(uint8_t *)cat_sad_stage3_layer1, (uint8_t *)elephant_sad_stage3_layer1},
+	{(uint8_t *)cat_sad_stage4_layer1, (uint8_t *)elephant_sad_stage4_layer1},
+	{(uint8_t *)cat_sad_stage5_layer1, (uint8_t *)elephant_sad_stage5_layer1},
+	{(uint8_t *)elephant_happy_stage1_layer1, (uint8_t *)seal_happy_stage1_layer1},
+	{(uint8_t *)elephant_happy_stage2_layer1, (uint8_t *)seal_happy_stage2_layer1},
+	{(uint8_t *)elephant_happy_stage3_layer1, (uint8_t *)seal_happy_stage3_layer1},
+	{(uint8_t *)elephant_happy_stage4_layer1, (uint8_t *)seal_happy_stage4_layer1},
+	{(uint8_t *)elephant_happy_stage5_layer1, (uint8_t *)seal_happy_stage5_layer1},
+	{(uint8_t *)elephant_sad_stage1_layer1, (uint8_t *)seal_sad_stage1_layer1},
+	{(uint8_t *)elephant_sad_stage2_layer1, (uint8_t *)seal_sad_stage2_layer1},
+	{(uint8_t *)elephant_sad_stage3_layer1, (uint8_t *)seal_sad_stage3_layer1},
+	{(uint8_t *)elephant_sad_stage4_layer1, (uint8_t *)seal_sad_stage4_layer1},
+	{(uint8_t *)elephant_sad_stage5_layer1, (uint8_t *)seal_sad_stage5_layer1},
+	{(uint8_t *)seal_happy_stage1_layer1, (uint8_t *)tree_happy_stage1_layer1},
+	{(uint8_t *)seal_happy_stage2_layer1, (uint8_t *)tree_happy_stage2_layer1},
+	{(uint8_t *)seal_happy_stage3_layer1, (uint8_t *)tree_happy_stage3_layer1},
+	{(uint8_t *)seal_happy_stage4_layer1, (uint8_t *)tree_happy_stage4_layer1},
+	{(uint8_t *)seal_happy_stage5_layer1, (uint8_t *)tree_happy_stage5_layer1},
+	{(uint8_t *)seal_sad_stage1_layer1, (uint8_t *)tree_sad_stage1_layer1},
+	{(uint8_t *)seal_sad_stage2_layer1, (uint8_t *)tree_sad_stage2_layer1},
+	{(uint8_t *)seal_sad_stage3_layer1, (uint8_t *)tree_sad_stage3_layer1},
+	{(uint8_t *)seal_sad_stage4_layer1, (uint8_t *)tree_sad_stage4_layer1},
+	{(uint8_t *)seal_sad_stage5_layer1, (uint8_t *)tree_sad_stage5_layer1},
+	{(uint8_t *)tree_happy_stage1_layer1, (uint8_t *)cat_happy_stage1_layer1},
+	{(uint8_t *)tree_happy_stage2_layer1, (uint8_t *)cat_happy_stage2_layer1},
+	{(uint8_t *)tree_happy_stage3_layer1, (uint8_t *)cat_happy_stage3_layer1},
+	{(uint8_t *)tree_happy_stage4_layer1, (uint8_t *)cat_happy_stage4_layer1},
+	{(uint8_t *)tree_happy_stage5_layer1, (uint8_t *)cat_happy_stage5_layer1},
+	{(uint8_t *)tree_sad_stage1_layer1, (uint8_t *)cat_sad_stage1_layer1},
+	{(uint8_t *)tree_sad_stage2_layer1, (uint8_t *)cat_sad_stage2_layer1},
+	{(uint8_t *)tree_sad_stage3_layer1, (uint8_t *)cat_sad_stage3_layer1},
+	{(uint8_t *)tree_sad_stage4_layer1, (uint8_t *)cat_sad_stage4_layer1},
+	{(uint8_t *)tree_sad_stage5_layer1, (uint8_t *)cat_sad_stage5_layer1},
+};
+
+const Mapping stage_switch_l0[] = {
+	{(uint8_t *)cat_sad_stage1_layer0, (uint8_t *)cat_sad_stage2_layer0},
+	{(uint8_t *)cat_sad_stage2_layer0, (uint8_t *)cat_sad_stage3_layer0},
+	{(uint8_t *)cat_sad_stage3_layer0, (uint8_t *)cat_happy_stage4_layer0},
+	{(uint8_t *)cat_happy_stage4_layer0, (uint8_t *)cat_happy_stage5_layer0},
+	{(uint8_t *)cat_happy_stage5_layer0, (uint8_t *)cat_happy_stage5_layer0},
+	{(uint8_t *)elephant_sad_stage1_layer0, (uint8_t *)elephant_sad_stage2_layer0},
+	{(uint8_t *)elephant_sad_stage2_layer0, (uint8_t *)elephant_sad_stage3_layer0},
+	{(uint8_t *)elephant_sad_stage3_layer0, (uint8_t *)elephant_happy_stage4_layer0},
+	{(uint8_t *)elephant_happy_stage4_layer0, (uint8_t *)elephant_happy_stage5_layer0},
+	{(uint8_t *)elephant_happy_stage5_layer0, (uint8_t *)elephant_happy_stage5_layer0},
+	{(uint8_t *)seal_sad_stage1_layer0, (uint8_t *)seal_sad_stage2_layer0},
+	{(uint8_t *)seal_sad_stage2_layer0, (uint8_t *)seal_sad_stage3_layer0},
+	{(uint8_t *)seal_sad_stage3_layer0, (uint8_t *)seal_happy_stage4_layer0},
+	{(uint8_t *)seal_happy_stage4_layer0, (uint8_t *)seal_happy_stage5_layer0},
+	{(uint8_t *)seal_happy_stage5_layer0, (uint8_t *)seal_happy_stage5_layer0},
+	{(uint8_t *)tree_sad_stage1_layer0, (uint8_t *)tree_sad_stage2_layer0},
+	{(uint8_t *)tree_sad_stage2_layer0, (uint8_t *)tree_sad_stage3_layer0},
+	{(uint8_t *)tree_sad_stage3_layer0, (uint8_t *)tree_happy_stage4_layer0},
+	{(uint8_t *)tree_happy_stage4_layer0, (uint8_t *)tree_happy_stage5_layer0},
+	{(uint8_t *)tree_happy_stage5_layer0, (uint8_t *)tree_happy_stage5_layer0},
+};
+
+const Mapping stage_switch_l1[] = {
+	{(uint8_t *)cat_sad_stage1_layer1, (uint8_t *)cat_sad_stage2_layer1},
+	{(uint8_t *)cat_sad_stage2_layer1, (uint8_t *)cat_sad_stage3_layer1},
+	{(uint8_t *)cat_sad_stage3_layer1, (uint8_t *)cat_happy_stage4_layer1},
+	{(uint8_t *)cat_happy_stage4_layer1, (uint8_t *)cat_happy_stage5_layer1},
+	{(uint8_t *)cat_happy_stage5_layer1, (uint8_t *)cat_happy_stage5_layer1},
+	{(uint8_t *)elephant_sad_stage1_layer1, (uint8_t *)elephant_sad_stage2_layer1},
+	{(uint8_t *)elephant_sad_stage2_layer1, (uint8_t *)elephant_sad_stage3_layer1},
+	{(uint8_t *)elephant_sad_stage3_layer1, (uint8_t *)elephant_happy_stage4_layer1},
+	{(uint8_t *)elephant_happy_stage4_layer1, (uint8_t *)elephant_happy_stage5_layer1},
+	{(uint8_t *)elephant_happy_stage5_layer1, (uint8_t *)elephant_happy_stage5_layer1},
+	{(uint8_t *)seal_sad_stage1_layer1, (uint8_t *)seal_sad_stage2_layer1},
+	{(uint8_t *)seal_sad_stage2_layer1, (uint8_t *)seal_sad_stage3_layer1},
+	{(uint8_t *)seal_sad_stage3_layer1, (uint8_t *)seal_happy_stage4_layer1},
+	{(uint8_t *)seal_happy_stage4_layer1, (uint8_t *)seal_happy_stage5_layer1},
+	{(uint8_t *)seal_happy_stage5_layer1, (uint8_t *)seal_happy_stage5_layer1},
+	{(uint8_t *)tree_sad_stage1_layer1, (uint8_t *)tree_sad_stage2_layer1},
+	{(uint8_t *)tree_sad_stage2_layer1, (uint8_t *)tree_sad_stage3_layer1},
+	{(uint8_t *)tree_sad_stage3_layer1, (uint8_t *)tree_happy_stage4_layer1},
+	{(uint8_t *)tree_happy_stage4_layer1, (uint8_t *)tree_happy_stage5_layer1},
+	{(uint8_t *)tree_happy_stage5_layer1, (uint8_t *)tree_happy_stage5_layer1},
+};
+
+/****************************************************
+ * Functions
+ ****************************************************/
+
+void right_shift_datas(unsigned char **datas, const Mapping *mappings) {
+    for (int i = 0; i < 40; ++i) {
+        if (*datas == mappings[i].left) {
+            *datas = mappings[i].right;
+            break;
+        }
+    }
+}
+
+void left_shift_datas(unsigned char **datas, const Mapping *mappings) {
+	for (int i = 0; i < 40; ++i) {
+		if (*datas == mappings[i].right) {
+			*datas = mappings[i].left;
+			break;
+		}
+	}
+}
+
+void increase_stage(unsigned char **datas, const Mapping *mappings) {
+	for (int i = 0; i < 20; ++i) {
+		if (*datas == mappings[i].left) {
+			*datas = mappings[i].right;
+			break;
+		}
+	}
+}
+
+/****************************************************
+ * Tasks
+ ****************************************************/
+
+LOCAL void task_epaper(INT stacd, void *exinf);
+LOCAL ID tskid_epaper;
+LOCAL T_CTSK ctsk_epaper = {
+		.itskpri = 10,
+		.stksz = 8192,
+		.task = task_epaper,
+		.tskatr = TA_HLNG | TA_RNG3,
+};
+
+LOCAL void task_epaper(INT stacd, void *exinf) {
+	while (1) {
+		if(epaper_need_update){
+			EPD_HW_Init();
+			EPD_ALL_image(datas1, datas2);
+			epaper_need_update = false;
+		}
+		cyhal_gpio_toggle(LED1);
+		tk_dly_tsk(500);
+	}
+}
 
 LOCAL void task_uart(INT stacd, void *exinf);
 LOCAL ID tskid_uart;
@@ -71,22 +260,88 @@ LOCAL void task_uart(INT stacd, void *exinf) {
 		if (rx_dma_done == 1) {
 			rx_dma_done = 0;
 		}
-		sprintf(buffer, "Data: %d %d\n\r", rx_dma_uart_buffer[0],
-				rx_dma_uart_buffer[1]);
+//		sprintf(buffer, "Data: %d %d\n\r", rx_dma_uart_buffer[0], rx_dma_uart_buffer[1]);
+		cup_connected = rx_dma_uart_buffer[0];
+		if(cup_connected && water_last > water_now){
+			water_total_drink += (uint32_t)(water_last - water_now);
+		}
+		if(water_total_drink / 255 > water_total_drink_level){
+			water_total_drink_level++;
+			if(water_total_drink_level > 5) water_total_drink_level = 5;
+			increase_stage(&datas1, stage_switch_l1);
+			increase_stage(&datas2, stage_switch_l0);
+			epaper_need_update = true;
+		}
+		water_last = water_now;
 		Cy_SCB_UART_PutString(UART_RECEIVER_HW, buffer);
 		cyhal_gpio_toggle(LED2);
 		tk_dly_tsk(100);
 	}
 }
 
+
+LOCAL void task_btn(INT stacd, void *exinf);
+LOCAL ID tskid_btn;
+LOCAL T_CTSK ctsk_btn = {
+		.itskpri = 10,
+		.stksz = 8192,
+		.task = task_btn,
+		.tskatr = TA_HLNG,
+};
+
+LOCAL void task_btn(INT stacd, void *exinf) {
+	while (1) {
+		static bool btn_1_have_pressed, btn_2_have_pressed;
+		if(cyhal_gpio_read(CYBSP_USER_BTN1) == CYBSP_BTN_PRESSED){
+			if (btn_1_have_pressed) {
+				tk_dly_tsk(50);
+				continue;
+			}
+			cyhal_gpio_toggle(LED3);
+			btn_1_have_pressed = true;
+			right_shift_datas(&datas1, animal_switch_l1);
+			right_shift_datas(&datas2, animal_switch_l0);
+			epaper_need_update = true;
+		} else {
+			btn_1_have_pressed = false;
+		}
+		if(cyhal_gpio_read(CYBSP_USER_BTN2) == CYBSP_BTN_PRESSED){
+			if (btn_2_have_pressed) {
+				tk_dly_tsk(50);
+				continue;
+			}
+			cyhal_gpio_toggle(LED3);
+			btn_2_have_pressed = true;
+			left_shift_datas(&datas1, animal_switch_l1);
+			left_shift_datas(&datas2, animal_switch_l0);
+			epaper_need_update = true;
+		} else {
+			btn_2_have_pressed = false;
+		}
+		tk_dly_tsk(50);
+	}
+}
+
+/****************************************************
+ * Main
+ ****************************************************/
+
 EXPORT INT usermain(void) {
-	EPD_HW_Init();
+	datas1 = (uint8_t *)cat_sad_stage1_layer1;
+	datas2 = (uint8_t *)cat_sad_stage1_layer0;
+	water_total_drink_level = 0;
+
+    EPD_HW_Init();
+    EPD_ALL_image(datas1, datas2);
 
 	tskid_uart = tk_cre_tsk(&ctsk_uart);
 	tk_sta_tsk(tskid_uart, 0);
 
-//	tskid_epaper = tk_cre_tsk(&ctsk_epaper);
-//	tk_sta_tsk(tskid_epaper, 0);
+	tskid_epaper = tk_cre_tsk(&ctsk_epaper);
+	tk_sta_tsk(tskid_epaper, 0);
+
+	tskid_btn = tk_cre_tsk(&ctsk_btn);
+	tk_sta_tsk(tskid_btn, 0);
 
 	tk_slp_tsk(TMO_FEVR);
 	return 0;
