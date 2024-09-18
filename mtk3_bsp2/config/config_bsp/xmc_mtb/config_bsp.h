@@ -31,13 +31,13 @@
 /*
  *  System memory area information (For debugging)
  */
-#define USE_DEBUG_SYSMEMINFO   (1)		// 1:Valid   0:invalid
+#define USE_DEBUG_SYSMEMINFO   (0)		// 1:Valid   0:invalid
 
 /* ------------------------------------------------------------------------ */
 /*
  *  Stack pointer monitoring function
  */
-#define USE_SPMON		(1)		// 1:Valid   0:invalid
+#define USE_SPMON		(0)		// 1:Valid   0:invalid
 
 /* ------------------------------------------------------------------------ */
 /* Device usage settings

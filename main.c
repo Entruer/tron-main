@@ -45,23 +45,28 @@
 *******************************************************************************/
 #include "cyhal.h"
 #include "cybsp.h"
-//#include "cy_retarget_io.h"
+#include "UartDma.h"
 
 /******************************************************************************
 * Macros
 *******************************************************************************/
 
-
 /*******************************************************************************
 * Global Variables
 *******************************************************************************/
-cyhal_uart_t uart_receiver;
-uint8_t read_data;
+
+uint8_t rx_dma_uart_buffer[BUFFER_SIZE];
+uint8_t rx_dma_error;
+uint8_t tx_dma_error;
+uint8_t uart_error;
+uint8_t rx_dma_done;
 
 /*******************************************************************************
 * Function Prototypes
 *******************************************************************************/
 
+void handle_error(void);
+void Isr_UART(void);
 
 /*******************************************************************************
 * Function Definitions
@@ -85,6 +90,8 @@ uint8_t read_data;
 int main(void)
 {
     cy_rslt_t result;
+    cy_en_scb_uart_status_t init_status;
+    cy_stc_scb_uart_context_t UART_RECEIVER_context;
 
 #if defined (CY_DEVICE_SECURE)
     cyhal_wdt_t wdt_obj;
@@ -98,15 +105,49 @@ int main(void)
     /* Initialize the device and board peripherals */
     result = cybsp_init();
 
-    cyhal_gpio_configure(LED1, CYHAL_GPIO_DIR_OUTPUT, CYHAL_GPIO_DRIVE_STRONG);
-    cyhal_gpio_configure(LED2, CYHAL_GPIO_DIR_OUTPUT, CYHAL_GPIO_DRIVE_STRONG);
-    cyhal_uart_init_cfg(&uart_receiver, &scb_8_hal_config);
-
     /* Board init failed. Stop program execution */
     if (result != CY_RSLT_SUCCESS)
     {
         CY_ASSERT(0);
     }
+
+    cy_stc_sysint_t UART_RECEIVER_INT_cfg =
+	{
+		.intrSrc = ( (NvicMux3_IRQn << 16) | UART_RECEIVER_IRQ ),
+		.intrPriority = 7u,
+	};
+
+	cy_stc_sysint_t RX_DMA_INT_cfg =
+	{
+		.intrSrc      = ( (NvicMux3_IRQn << 16) | (IRQn_Type)RxDma_IRQ ),
+		.intrPriority = 6u,
+	};
+
+	cy_stc_sysint_t TX_DMA_INT_cfg =
+	{
+		.intrSrc      = ( (NvicMux2_IRQn << 16) | (IRQn_Type)TxDma_IRQ ),
+		.intrPriority = 6u,
+	};
+
+    cyhal_gpio_configure(LED1, CYHAL_GPIO_DIR_OUTPUT, CYHAL_GPIO_DRIVE_STRONG);
+    cyhal_gpio_configure(LED2, CYHAL_GPIO_DIR_OUTPUT, CYHAL_GPIO_DRIVE_STRONG);
+    cyhal_gpio_configure(LED3, CYHAL_GPIO_DIR_OUTPUT, CYHAL_GPIO_DRIVE_STRONG);
+    configure_rx_dma(rx_dma_uart_buffer, &RX_DMA_INT_cfg);
+	configure_tx_dma(rx_dma_uart_buffer, &TX_DMA_INT_cfg);
+	Cy_SysInt_Init(&UART_RECEIVER_INT_cfg, &Isr_UART);
+	NVIC_EnableIRQ((IRQn_Type) NvicMux3_IRQn);
+
+	init_status = Cy_SCB_UART_Init(UART_RECEIVER_HW, &UART_RECEIVER_config, &UART_RECEIVER_context);
+	if (init_status!=CY_SCB_UART_SUCCESS)
+	{
+		handle_error();
+	}
+	Cy_SCB_UART_Enable(UART_RECEIVER_HW);
+
+    rx_dma_error = 0;
+	tx_dma_error = 0;
+	uart_error = 0;
+	rx_dma_done = 0;
 
     /* Enable global interrupts */
     __enable_irq();
@@ -118,6 +159,32 @@ int main(void)
     {
 
     }
+}
+
+void handle_error(void)
+{
+     /* Disable all interrupts. */
+    __disable_irq();
+
+    CY_ASSERT(0);
+}
+
+
+void Isr_UART(void)
+{
+    uint32_t intrSrcRx;
+    uint32_t intrSrcTx;
+
+    /* Get RX interrupt sources */
+    intrSrcRx = Cy_SCB_UART_GetRxFifoStatus(UART_RECEIVER_HW);
+    Cy_SCB_UART_ClearRxFifoStatus(UART_RECEIVER_HW, intrSrcRx);
+
+    /* Get TX interrupt sources */
+    intrSrcTx = Cy_SCB_UART_GetTxFifoStatus(UART_RECEIVER_HW);
+    Cy_SCB_UART_ClearTxFifoStatus(UART_RECEIVER_HW, intrSrcTx);
+
+    /* RX overflow or RX underflow or RX overflow occured */
+    uart_error = 1;
 }
 
 /* [] END OF FILE */

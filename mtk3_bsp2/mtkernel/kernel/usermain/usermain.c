@@ -14,10 +14,15 @@
 #include <tk/tkernel.h>
 #include <tm/tmonitor.h>
 
+#include <string.h>
+#include <stdio.h>
+
 #include "cyhal.h"
 #include "cybsp.h"
+#include "UartDma.h"
 
-extern cyhal_uart_t uart_receiver;
+extern uint8_t rx_dma_uart_buffer[BUFFER_SIZE];
+extern uint8_t rx_dma_done;
 
 /*
  * Entry routine for the user application.
@@ -38,27 +43,31 @@ LOCAL T_CTSK ctsk_uart = {
 	.itskpri	= 10,
 	.stksz		= 8192,
 	.task		= task_uart,
-	.tskatr		= TA_HLNG | TA_RNG3,
+	.tskatr		= TA_HLNG,
 };
+
+void uart_callback(void *callback_arg, cyhal_uart_event_t event){
+	cyhal_gpio_toggle(LED3);
+}
 
 LOCAL void task_uart(INT stacd, void *exinf)
 {
 	while(1) {
-		uint8_t rx_buffer[2];
-		uint8_t length = 2;
-		if(cyhal_uart_read(&uart_receiver, rx_buffer, &length) == CY_RSLT_SUCCESS){
-			tm_printf((UB*)"uart task: %d %d\n", rx_buffer[0], rx_buffer[1]);
-		}
-
-		cyhal_gpio_toggle(LED1);
-		tk_dly_tsk(500);
+    	char buffer[100];
+        if (rx_dma_done==1)
+        {
+    		cyhal_gpio_toggle(LED1);
+    		rx_dma_done = 0;
+        }
+        sprintf(buffer, "Data: %d %d\n\r", rx_dma_uart_buffer[0], rx_dma_uart_buffer[1]);
+        Cy_SCB_UART_PutString(UART_RECEIVER_HW, buffer);
+        cyhal_gpio_toggle(LED2);
+		tk_dly_tsk(100);
 	}
 }
 
 EXPORT INT usermain( void )
 {
-	tm_putstring((UB*)"Start User-main program.\n");
-
 	tskid_uart = tk_cre_tsk(&ctsk_uart);
 	tk_sta_tsk(tskid_uart, 0);
 
