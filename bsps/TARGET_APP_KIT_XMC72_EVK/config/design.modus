@@ -3,6 +3,11 @@
     <Devices>
         <Device mpn="XMC7200D-E272K8384">
             <BlockConfig>
+                <Block location="cpuss[0].dw1[0].chan[24]">
+                    <Aliases>
+                        <Alias value="SpiTxDma"/>
+                    </Aliases>
+                </Block>
                 <Block location="ioss[0].port[0].pin[2]">
                     <Aliases>
                         <Alias value="CYBSP_CAN_TX"/>
@@ -47,16 +52,6 @@
                 <Block location="ioss[0].port[7].pin[4]">
                     <Aliases>
                         <Alias value="CYBSP_QSPI_D3"/>
-                    </Aliases>
-                </Block>
-                <Block location="ioss[0].port[10].pin[4]">
-                    <Aliases>
-                        <Alias value="CYBSP_D9"/>
-                    </Aliases>
-                </Block>
-                <Block location="ioss[0].port[10].pin[5]">
-                    <Aliases>
-                        <Alias value="CYBSP_D8"/>
                     </Aliases>
                 </Block>
                 <Block location="ioss[0].port[12].pin[2]">
@@ -114,11 +109,6 @@
                 <Block location="ioss[0].port[13].pin[6]">
                     <Aliases>
                         <Alias value="CYBSP_D6"/>
-                    </Aliases>
-                </Block>
-                <Block location="ioss[0].port[13].pin[7]">
-                    <Aliases>
-                        <Alias value="CYBSP_D7"/>
                     </Aliases>
                 </Block>
                 <Block location="ioss[0].port[14].pin[0]">
@@ -386,7 +376,7 @@
                         </Aliases>
                     </Block>
                     <Parameters>
-                        <Param id="DriveModes" value="CY_GPIO_DM_STRONG_IN_OFF"/>
+                        <Param id="DriveModes" value="CY_GPIO_DM_HIGHZ"/>
                         <Param id="driveStrength" value="CY_GPIO_DRIVE_1_2"/>
                         <Param id="inFlash" value="true"/>
                         <Param id="initialState" value="1"/>
@@ -406,7 +396,7 @@
                         </Aliases>
                     </Block>
                     <Parameters>
-                        <Param id="DriveModes" value="CY_GPIO_DM_HIGHZ"/>
+                        <Param id="DriveModes" value="CY_GPIO_DM_STRONG_IN_OFF"/>
                         <Param id="driveStrength" value="CY_GPIO_DRIVE_1_2"/>
                         <Param id="inFlash" value="true"/>
                         <Param id="initialState" value="1"/>
@@ -426,7 +416,7 @@
                         </Aliases>
                     </Block>
                     <Parameters>
-                        <Param id="DriveModes" value="CY_GPIO_DM_HIGHZ"/>
+                        <Param id="DriveModes" value="CY_GPIO_DM_STRONG_IN_OFF"/>
                         <Param id="driveStrength" value="CY_GPIO_DRIVE_1_2"/>
                         <Param id="inFlash" value="true"/>
                         <Param id="initialState" value="1"/>
@@ -443,6 +433,46 @@
                         <Aliases>
                             <Alias value="CYBSP_SPI_CS"/>
                             <Alias value="CYBSP_D10"/>
+                        </Aliases>
+                    </Block>
+                    <Parameters>
+                        <Param id="DriveModes" value="CY_GPIO_DM_STRONG_IN_OFF"/>
+                        <Param id="driveStrength" value="CY_GPIO_DRIVE_1_2"/>
+                        <Param id="inFlash" value="true"/>
+                        <Param id="initialState" value="1"/>
+                        <Param id="isrTrigger" value="CY_GPIO_INTR_DISABLE"/>
+                        <Param id="nonSec" value="1"/>
+                        <Param id="pullUpRes" value="CY_GPIO_PULLUP_RES_DISABLE"/>
+                        <Param id="sioOutputBuffer" value="true"/>
+                        <Param id="slewRate" value="CY_GPIO_SLEW_FAST"/>
+                        <Param id="vtrip" value="CY_GPIO_VTRIP_CMOS"/>
+                    </Parameters>
+                </Personality>
+                <Personality template="pin" version="3.0">
+                    <Block location="ioss[0].port[10].pin[4]" locked="true">
+                        <Aliases>
+                            <Alias value="CYBSP_D9"/>
+                            <Alias value="DC"/>
+                        </Aliases>
+                    </Block>
+                    <Parameters>
+                        <Param id="DriveModes" value="CY_GPIO_DM_STRONG_IN_OFF"/>
+                        <Param id="driveStrength" value="CY_GPIO_DRIVE_1_2"/>
+                        <Param id="inFlash" value="true"/>
+                        <Param id="initialState" value="0"/>
+                        <Param id="isrTrigger" value="CY_GPIO_INTR_DISABLE"/>
+                        <Param id="nonSec" value="1"/>
+                        <Param id="pullUpRes" value="CY_GPIO_PULLUP_RES_DISABLE"/>
+                        <Param id="sioOutputBuffer" value="true"/>
+                        <Param id="slewRate" value="CY_GPIO_SLEW_FAST"/>
+                        <Param id="vtrip" value="CY_GPIO_VTRIP_CMOS"/>
+                    </Parameters>
+                </Personality>
+                <Personality template="pin" version="3.0">
+                    <Block location="ioss[0].port[10].pin[5]" locked="true">
+                        <Aliases>
+                            <Alias value="CYBSP_D8"/>
+                            <Alias value="BUSY"/>
                         </Aliases>
                     </Block>
                     <Parameters>
@@ -528,6 +558,26 @@
                         <Param id="driveStrength" value="CY_GPIO_DRIVE_1_2"/>
                         <Param id="inFlash" value="true"/>
                         <Param id="initialState" value="1"/>
+                        <Param id="isrTrigger" value="CY_GPIO_INTR_DISABLE"/>
+                        <Param id="nonSec" value="1"/>
+                        <Param id="pullUpRes" value="CY_GPIO_PULLUP_RES_DISABLE"/>
+                        <Param id="sioOutputBuffer" value="true"/>
+                        <Param id="slewRate" value="CY_GPIO_SLEW_FAST"/>
+                        <Param id="vtrip" value="CY_GPIO_VTRIP_CMOS"/>
+                    </Parameters>
+                </Personality>
+                <Personality template="pin" version="3.0">
+                    <Block location="ioss[0].port[13].pin[7]" locked="true">
+                        <Aliases>
+                            <Alias value="CYBSP_D7"/>
+                            <Alias value="RST"/>
+                        </Aliases>
+                    </Block>
+                    <Parameters>
+                        <Param id="DriveModes" value="CY_GPIO_DM_STRONG_IN_OFF"/>
+                        <Param id="driveStrength" value="CY_GPIO_DRIVE_1_2"/>
+                        <Param id="inFlash" value="true"/>
+                        <Param id="initialState" value="0"/>
                         <Param id="isrTrigger" value="CY_GPIO_INTR_DISABLE"/>
                         <Param id="nonSec" value="1"/>
                         <Param id="pullUpRes" value="CY_GPIO_PULLUP_RES_DISABLE"/>
@@ -693,7 +743,7 @@
                     <Block location="peri[0].group[1].div_8[1]" locked="true"/>
                     <Parameters>
                         <Param id="fracDivider" value="0"/>
-                        <Param id="intDivider" value="15"/>
+                        <Param id="intDivider" value="25"/>
                         <Param id="startOnReset" value="true"/>
                     </Parameters>
                 </Personality>
@@ -789,8 +839,8 @@
                         <Param id="IntrTxOverflow" value="false"/>
                         <Param id="IntrTxTrigger" value="false"/>
                         <Param id="IntrTxUnderflow" value="false"/>
-                        <Param id="ModeUser" value="CY_SCB_SPI_SLAVE"/>
-                        <Param id="OvsFactor" value="16"/>
+                        <Param id="ModeUser" value="CY_SCB_SPI_MASTER"/>
+                        <Param id="OvsFactor" value="4"/>
                         <Param id="Parity" value="CY_SCB_SPI_PARITY_NONE"/>
                         <Param id="RxDataWidth" value="8"/>
                         <Param id="RxTriggerLevel" value="63"/>

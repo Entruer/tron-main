@@ -46,6 +46,8 @@
 #include "cyhal.h"
 #include "cybsp.h"
 #include "UartDma.h"
+#include "Epaper.h"
+#include "Matrix.h"
 
 /******************************************************************************
 * Macros
@@ -60,6 +62,8 @@ uint8_t rx_dma_error;
 uint8_t tx_dma_error;
 uint8_t uart_error;
 uint8_t rx_dma_done;
+
+cyhal_spi_t mSPI;
 
 /*******************************************************************************
 * Function Prototypes
@@ -132,13 +136,18 @@ int main(void)
     cyhal_gpio_configure(LED1, CYHAL_GPIO_DIR_OUTPUT, CYHAL_GPIO_DRIVE_STRONG);
     cyhal_gpio_configure(LED2, CYHAL_GPIO_DIR_OUTPUT, CYHAL_GPIO_DRIVE_STRONG);
     cyhal_gpio_configure(LED3, CYHAL_GPIO_DIR_OUTPUT, CYHAL_GPIO_DRIVE_STRONG);
-    cyhal_gpio_write(LED1, 0);
-    cyhal_gpio_write(LED2, 0);
-    cyhal_gpio_write(LED3, 0);
+    init_cycfg_pins();
+    cyhal_gpio_configure(DC, CYHAL_GPIO_DIR_OUTPUT, CYHAL_GPIO_DRIVE_STRONG);
+    cyhal_gpio_configure(RST, CYHAL_GPIO_DIR_OUTPUT, CYHAL_GPIO_DRIVE_STRONG);
+    cyhal_gpio_configure(BUSY, CYHAL_GPIO_DIR_INPUT, CYHAL_GPIO_DRIVE_NONE);
+    cyhal_gpio_write(LED1, 1);
+    cyhal_gpio_write(LED2, 1);
+    cyhal_gpio_write(LED3, 1);
     configure_rx_dma(rx_dma_uart_buffer, &RX_DMA_INT_cfg);
 	configure_tx_dma(rx_dma_uart_buffer, &TX_DMA_INT_cfg);
 	Cy_SysInt_Init(&UART_RECEIVER_INT_cfg, &Isr_UART);
 	NVIC_EnableIRQ((IRQn_Type) NvicMux3_IRQn);
+	cyhal_spi_init_cfg(&mSPI, &SPI_PAPER_hal_config);
 
 	init_status = Cy_SCB_UART_Init(UART_RECEIVER_HW, &UART_RECEIVER_config, &UART_RECEIVER_context);
 	if (init_status!=CY_SCB_UART_SUCCESS)
@@ -155,12 +164,17 @@ int main(void)
     /* Enable global interrupts */
     __enable_irq();
 
-    void knl_start_mtkernel(void);
-	knl_start_mtkernel();
+//    void knl_start_mtkernel(void);
+//	knl_start_mtkernel();
+
+    EPD_HW_Init();
+    EPD_ALL_image(&cat_happy_stage2_layer1[0][0], &cat_happy_stage2_layer0[0][0]);
+//    EPD_WhiteScreen_Black();
 
     for (;;)
     {
-
+    	cyhal_gpio_toggle(LED1);
+    	cyhal_system_delay_ms(500);
     }
 }
 
