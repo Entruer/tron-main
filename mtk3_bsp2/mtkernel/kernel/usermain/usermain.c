@@ -240,7 +240,6 @@ LOCAL void task_epaper(INT stacd, void *exinf) {
 			EPD_ALL_image(datas1, datas2);
 			epaper_need_update = false;
 		}
-		cyhal_gpio_toggle(LED1);
 		tk_dly_tsk(500);
 	}
 }
@@ -255,13 +254,15 @@ LOCAL T_CTSK ctsk_uart = {
 };
 
 LOCAL void task_uart(INT stacd, void *exinf) {
+	static bool send_update_flag;
 	while (1) {
 		char buffer[100];
 		if (rx_dma_done == 1) {
 			rx_dma_done = 0;
 		}
-//		sprintf(buffer, "Data: %d %d\n\r", rx_dma_uart_buffer[0], rx_dma_uart_buffer[1]);
+
 		cup_connected = rx_dma_uart_buffer[0];
+		water_now = rx_dma_uart_buffer[1];
 		if(cup_connected && water_last > water_now){
 			water_total_drink += (uint32_t)(water_last - water_now);
 		}
@@ -270,11 +271,17 @@ LOCAL void task_uart(INT stacd, void *exinf) {
 			if(water_total_drink_level > 5) water_total_drink_level = 5;
 			increase_stage(&datas1, stage_switch_l1);
 			increase_stage(&datas2, stage_switch_l0);
+			send_update_flag = true;
+		}
+		if(send_update_flag && isEPD_W21_BUSY == EPD_W21_BUSY_LEVEL){
 			epaper_need_update = true;
+			send_update_flag = false;
 		}
 		water_last = water_now;
+
+		sprintf(buffer, "cup_connected: %d, water_now: %d, water_last: %d, water_total_drink: %d, water_total_drink_level: %d\n", cup_connected, water_now, water_last, water_total_drink, water_total_drink_level);
+
 		Cy_SCB_UART_PutString(UART_RECEIVER_HW, buffer);
-		cyhal_gpio_toggle(LED2);
 		tk_dly_tsk(100);
 	}
 }
@@ -290,6 +297,7 @@ LOCAL T_CTSK ctsk_btn = {
 };
 
 LOCAL void task_btn(INT stacd, void *exinf) {
+	static bool send_update_flag;
 	while (1) {
 		static bool btn_1_have_pressed, btn_2_have_pressed;
 		if(cyhal_gpio_read(CYBSP_USER_BTN1) == CYBSP_BTN_PRESSED){
@@ -297,11 +305,10 @@ LOCAL void task_btn(INT stacd, void *exinf) {
 				tk_dly_tsk(50);
 				continue;
 			}
-			cyhal_gpio_toggle(LED3);
 			btn_1_have_pressed = true;
 			right_shift_datas(&datas1, animal_switch_l1);
 			right_shift_datas(&datas2, animal_switch_l0);
-			epaper_need_update = true;
+			send_update_flag = true;
 		} else {
 			btn_1_have_pressed = false;
 		}
@@ -310,14 +317,18 @@ LOCAL void task_btn(INT stacd, void *exinf) {
 				tk_dly_tsk(50);
 				continue;
 			}
-			cyhal_gpio_toggle(LED3);
 			btn_2_have_pressed = true;
 			left_shift_datas(&datas1, animal_switch_l1);
 			left_shift_datas(&datas2, animal_switch_l0);
-			epaper_need_update = true;
+			send_update_flag = true;
 		} else {
 			btn_2_have_pressed = false;
 		}
+		if(send_update_flag && isEPD_W21_BUSY == EPD_W21_BUSY_LEVEL){
+			epaper_need_update = true;
+			send_update_flag = false;
+		}
+
 		tk_dly_tsk(50);
 	}
 }
